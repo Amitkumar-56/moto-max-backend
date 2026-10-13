@@ -25,7 +25,8 @@ if ($action == 'register') {
             $stmt = $conn->prepare($query);
             
             $password_hash = password_hash($data->password, PASSWORD_BCRYPT);
-            $role = isset($data->role) && $data->role == 'admin' ? 'admin' : 'user';
+            // Public registration is strictly for user role
+            $role = 'user';
             
             $stmt->bindParam(":name", $data->name);
             $stmt->bindParam(":email", $data->email);
@@ -42,11 +43,44 @@ if ($action == 'register') {
         echo json_encode(["status" => "error", "message" => "Incomplete data."]);
     }
 } 
-elseif ($action == 'login') {
+elseif ($action == 'admin_login') {
     if (!empty($data->email) && !empty($data->password)) {
-        $query = "SELECT id, name, email, password, role FROM users WHERE email = :email";
+        $input = trim($data->email);
+        $query = "SELECT id, name, email, password FROM admin WHERE LOWER(email) = LOWER(:email) LIMIT 1";
         $stmt = $conn->prepare($query);
-        $stmt->bindParam(":email", $data->email);
+        $stmt->bindParam(":email", $input);
+        $stmt->execute();
+        
+        if ($stmt->rowCount() > 0) {
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            if (password_verify($data->password, $row['password'])) {
+                echo json_encode([
+                    "status" => "success", 
+                    "message" => "Admin login successful.",
+                    "user" => [
+                        "id" => $row['id'],
+                        "name" => $row['name'],
+                        "email" => $row['email'],
+                        "role" => "admin"
+                    ]
+                ]);
+            } else {
+                echo json_encode(["status" => "error", "message" => "Invalid password for admin."]);
+            }
+        } else {
+            echo json_encode(["status" => "error", "message" => "Admin account not found with this email."]);
+        }
+    } else {
+        echo json_encode(["status" => "error", "message" => "Please enter admin email and password."]);
+    }
+}
+elseif ($action == 'login' || $action == 'user_login') {
+    if (!empty($data->email) && !empty($data->password)) {
+        $input = trim($data->email);
+
+        $query = "SELECT id, name, email, password, role FROM users WHERE LOWER(email) = LOWER(:email) LIMIT 1";
+        $stmt = $conn->prepare($query);
+        $stmt->bindParam(":email", $input);
         $stmt->execute();
         
         if ($stmt->rowCount() > 0) {
@@ -66,10 +100,10 @@ elseif ($action == 'login') {
                 echo json_encode(["status" => "error", "message" => "Invalid password."]);
             }
         } else {
-            echo json_encode(["status" => "error", "message" => "User not found."]);
+            echo json_encode(["status" => "error", "message" => "User account not found with this email."]);
         }
     } else {
-        echo json_encode(["status" => "error", "message" => "Incomplete data."]);
+        echo json_encode(["status" => "error", "message" => "Please enter email and password."]);
     }
 } else {
     echo json_encode(["status" => "error", "message" => "Invalid action."]);

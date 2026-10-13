@@ -17,7 +17,7 @@ if ($action == 'dashboard') {
     $stats['total_users'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
     
     // Total admins
-    $stmt = $conn->query("SELECT COUNT(*) as count FROM users WHERE role = 'admin'");
+    $stmt = $conn->query("SELECT COUNT(*) as count FROM admin");
     $stats['total_admins'] = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
     
     echo json_encode(["status" => "success", "data" => $stats]);
