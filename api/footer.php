@@ -41,10 +41,7 @@ $defaults = [
         ['title' => 'Home', 'url' => '/'],
         ['title' => 'About Us', 'url' => '/about-us'],
         ['title' => 'Contact', 'url' => '/contact-us'],
-        ['title' => 'Management', 'url' => '/team'],
-        ['title' => 'News & Events', 'url' => '/news-events'],
-        ['title' => 'Blog', 'url' => '/blog'],
-        ['title' => 'Gallery', 'url' => '/gallery']
+        ['title' => 'Management', 'url' => '/team']
     ]),
     'product_links' => json_encode([
         ['title' => 'Automotive Lithium Battery', 'url' => '/products/electric-scooter-battery'],
@@ -73,6 +70,12 @@ if ($method === 'GET') {
         $val = $row['setting_value'];
         if ($key === 'useful_links' || $key === 'product_links') {
             $decoded = json_decode($val, true);
+            if ($key === 'useful_links' && is_array($decoded)) {
+                $decoded = array_values(array_filter($decoded, function($item) {
+                    $url = is_array($item) ? ($item['url'] ?? '') : '';
+                    return !in_array($url, ['/news-events', '/blog', '/gallery']);
+                }));
+            }
             $data[$key] = $decoded !== null ? $decoded : $val;
         } else {
             $data[$key] = $val;
